@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MENTIR-AI: Cross-Model Feedback Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:        #1a1a2e;
+    --cream:      #faf8f4;
+    --white:      #ffffff;
+    --border:     #ddd8d0;
+    --muted:      #7a7068;
+
+    /* Student */
+    --student-bg:     #eef1f6;
+    --student-accent: #5c6b8a;
+
+    /* Vanilla */
+    --v-bg:     #e8f0ee;
+    --v-accent: #3d6e62;
+    --v-badge:  #4a7c6f;
+
+    /* RAG */
+    --r-bg:     #ede8f2;
+    --r-accent: #6a4a82;
+    --r-badge:  #7a5a92;
+
+    /* Fine Tuned */
+    --ft-bg:    #fdeee6;
+    --ft-accent:#b05c30;
+    --ft-badge: #c06838;
+
+    /* Annotations */
+    --ann-bg:     #fffbf2;
+    --ann-border: #e8c97a;
+    --ann-crit:   #e07060;
+    --ann-pos:    #5a9e72;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ══════════════════════════════════════════
+     SITE HEADER
+  ══════════════════════════════════════════ */
+  .site-header {
+    background: var(--ink);
+    color: white;
+    padding: 52px 64px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .site-header::before {
+    content: '';
+    position: absolute;
+    top: -70px; right: -80px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: rgba(74,124,111,0.1);
+    pointer-events: none;
+  }
+
+  .site-header::after {
+    content: '';
+    position: absolute;
+    bottom: -50px; right: 260px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(176,92,48,0.08);
+    pointer-events: none;
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 14px;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    max-width: 680px;
+  }
+
+  .header-title em { font-style: italic; color: #8ecfc0; }
+
+  .header-subtitle {
+    font-size: 14.5px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 300;
+    max-width: 620px;
+    line-height: 1.75;
+    margin-bottom: 36px;
+  }
+
+  .header-legend {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .legend-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 400;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.75);
+  }
+
+  .legend-chip .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ══════════════════════════════════════════
+     MAIN
+  ══════════════════════════════════════════ */
+  .main-content {
+    padding: 52px 64px 40px;
+  }
+
+  .section-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .section-eyebrow::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ══════════════════════════════════════════
+     STUDENT EXAMPLE WRAPPER
+  ══════════════════════════════════════════ */
+  .student-example {
+    margin-bottom: 72px;
+  }
+
+  /* Student work banner */
+  .student-banner {
+    background: var(--student-bg);
+    border: 1px solid #c4cedd;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 28px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    border-bottom: none;
+  }
+
+  .student-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    color: rgba(92,107,138,0.25);
+    line-height: 1;
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+
+  .student-meta {
+    flex: 1;
+  }
+
+  .student-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--student-accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .student-label .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--student-accent);
+  }
+
+  .student-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--ink);
+    font-weight: 300;
+  }
+
+  .student-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ══════════════════════════════════════════
+     MODEL RESPONSES GRID
+  ══════════════════════════════════════════ */
+  .model-responses {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    overflow: hidden;
+    background: var(--white);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  .model-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .model-col + .model-col {
+    border-left: 1px solid var(--border);
+  }
+
+  /* Model header strip */
+  .model-col-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .model-col-header.vanilla { background: var(--v-bg); }
+  .model-col-header.rag     { background: var(--r-bg); }
+  .model-col-header.ft      { background: var(--ft-bg); }
+
+  .model-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .model-badge.vanilla { background: #c8e2dc; color: var(--v-accent); }
+  .model-badge.rag     { background: #dcd0e8; color: var(--r-accent); }
+  .model-badge.ft      { background: #f5d8c8; color: var(--ft-accent); }
+
+  /* AI Response panel */
+  .ai-panel {
+    padding: 20px 20px;
+    font-size: 13px;
+    line-height: 1.78;
+    font-weight: 300;
+    color: #2a2a3a;
+    flex: 1;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ai-panel.vanilla { background: #f5f9f8; }
+  .ai-panel.rag     { background: #f7f4fb; }
+  .ai-panel.ft      { background: #fdf8f5; }
+
+  /* highlight spans */
+  .hl-good { background: rgba(90,180,120,0.2); border-radius: 2px; padding: 1px 2px; }
+  .hl-bad  { background: rgba(220,80,60,0.12); border-radius: 2px; padding: 1px 2px; }
+  .hl-note { background: rgba(220,190,60,0.25); border-radius: 2px; padding: 1px 2px; }
+
+  /* Quote style for responses */
+  .response-quote-wrapper {
+    border-left: 2px solid rgba(0,0,0,0.08);
+    padding-left: 12px;
+    font-style: italic;
+    color: #555;
+    font-size: 12.5px;
+  }
+
+  /* Annotation panel */
+  .ann-panel {
+    padding: 16px 20px;
+    background: var(--ann-bg);
+  }
+
+  .ann-panel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8a6820;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ann-panel-label .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #c87941;
+  }
+
+  .ann-note {
+    background: white;
+    border-left: 3px solid var(--ann-border);
+    border-radius: 0 6px 6px 0;
+    padding: 9px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #4a3e28;
+  }
+
+  .ann-note:last-child { margin-bottom: 0; }
+
+  .ann-note.crit {
+    border-left-color: var(--ann-crit);
+    background: #fff7f6;
+    color: #4a1e18;
+  }
+
+  .ann-note.pos {
+    border-left-color: var(--ann-pos);
+    background: #f4fbf6;
+    color: #1e3a28;
+  }
+
+  .ann-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c87941;
+    margin-bottom: 4px;
+  }
+
+  .ann-note.crit .ann-title { color: #b03020; }
+  .ann-note.pos  .ann-title { color: #2a7a48; }
+
+  .ann-quote {
+    font-style: italic;
+    font-size: 11.5px;
+    color: #7a5830;
+    margin-top: 5px;
+    padding: 4px 8px;
+    background: #fef5e0;
+    border-radius: 3px;
+    border: 1px solid #f0dca0;
+    line-height: 1.5;
+  }
+
+  .ann-note.crit .ann-quote {
+    background: #fef0ee;
+    border-color: #f0c0b8;
+    color: #7a2018;
+  }
+
+  /* ══════════════════════════════════════════
+     FOOTER
+  ══════════════════════════════════════════ */
+  .page-footer {
+    text-align: center;
+    padding: 20px 64px 48px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    margin: 0 64px;
+  }
+
+  /* ══════════════════════════════════════════
+     RESPONSIVE
+  ══════════════════════════════════════════ */
+  @media (max-width: 1060px) {
+    .model-responses { grid-template-columns: 1fr; }
+    .model-col + .model-col { border-left: none; border-top: 1px solid var(--border); }
+    .main-content { padding: 36px 28px 32px; }
+    .site-header { padding: 36px 28px 32px; }
+    .header-title { font-size: 28px; }
+    .page-footer { margin: 0 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+<header class="site-header">
+  <p class="header-eyebrow">MENTIR-AI Research Project · Round 1 · Three-Model Comparison</p>
+  <h1 class="header-title">Same Student Work,<br><em>Three Different AI Responses</em></h1>
+  <p class="header-subtitle">
+    Six student responses appear in all three model datasets and carry researcher annotations across models — enabling direct comparison. Three examples are shown here. Each card presents the student's work once, followed by the AI's response from each model and the annotations that response generated.
+  </p>
+  <div class="header-legend">
+    <div class="legend-chip"><div class="dot" style="background:#5c6b8a"></div>Student Work</div>
+    <div class="legend-chip"><div class="dot" style="background:#4a7c6f"></div>Vanilla</div>
+    <div class="legend-chip"><div class="dot" style="background:#7a5a92"></div>RAG 0.1</div>
+    <div class="legend-chip"><div class="dot" style="background:#c06838"></div>Fine Tuned</div>
+    <div class="legend-chip"><div class="dot" style="background:#c87941"></div>Researcher Annotations</div>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════ -->
+<main class="main-content">
+  <p class="section-eyebrow">3 of 6 student responses annotated across all three models</p>
+
+
+  <!-- ╔══════════════════════════════════════╗
+       EXAMPLE 1 · Doc 56314
+       Brief, correct work — very short response
+  ╚══════════════════════════════════════╝ -->
+  <div class="student-example">
+
+    <div class="student-banner">
+      <div class="student-num">01</div>
+      <div class="student-meta">
+        <div class="student-label"><div class="dot"></div>Student Work · Document 56314</div>
+        <div class="student-text">
+          They drove 870 miles. I multiplied 145 by 6.
+        </div>
+        <div class="student-id">Brief, correct response — student provides the right answer with minimal explanation</div>
+      </div>
+    </div>
+
+    <div class="model-responses">
+
+      <!-- VANILLA -->
+      <div class="model-col">
+        <div class="model-col-header vanilla">
+          <span class="model-badge vanilla">Vanilla</span>
+        </div>
+        <div class="ai-panel vanilla">
+          It looks like you're getting started with some multiplication! <span class="hl-note">I'm curious to know more about your thinking — can you tell me why you multiplied 145 by 6?</span> What did you get as an answer, and how did you use that to find the total miles driven?<br><br>
+          I noticed that in the short answer question, you wrote "They drove 870 miles." <span class="hl-note">Did you notice a connection between this problem and your long answer calculation involving multiplication? That's a great observation!</span><br><br>
+          To take it further, can you explore more ways to relate this problem to real-life scenarios or visual representations of distance traveled? For example, how many hours would someone need to drive at an average speed of 60 mph to cover that distance?<br><br>
+          <span class="hl-bad">Remember, practice makes perfect! Keep exploring and experimenting with different math concepts to deepen your understanding.</span>
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note">
+            <div class="ann-title">Too Many Questions</div>
+            Maybe it should have stayed focused on the first question? The length of the response doesn't match the length of the student's — a short answer suggests the student may not be willing to read a lot of words.
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Ask for Units</div>
+            What were the units for those numbers and what do they represent?
+            <div class="ann-quote">"145 by 6"</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Filler / You're Right, But…</div>
+            Generic closing adds no value. What is the purpose of the "take it further" prompt — is the AI trying to extend student thinking or just find something to add?
+          </div>
+        </div>
+      </div>
+
+      <!-- RAG 0.1 -->
+      <div class="model-col">
+        <div class="model-col-header rag">
+          <span class="model-badge rag">RAG 0.1</span>
+        </div>
+        <div class="ai-panel rag">
+          <span class="hl-bad">It looks like there may have been a bit of a disconnect between the student's calculation and the actual problem they were trying to solve!</span> While I appreciate the effort to multiply 145 by 6, <span class="hl-bad">it seems that this calculation wasn't quite relevant to determining how many miles the driver drove.</span><br><br>
+          It would be great if you could take another look at the problem and think about what information is actually given — specifically, <span class="hl-bad">the distance traveled (870 miles) and the speed (145 mph).</span> Can you see how these numbers might be related? Maybe we can work together to find a more accurate way to calculate this distance!
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note crit">
+            <div class="ann-title">This Is Wack!</div>
+            The AI says the calculation was not relevant — which is wrong. The student's answer is correct (145 × 6 = 870). The real task would be getting the student to explain their reasoning more fully.
+          </div>
+          <div class="ann-note crit">
+            <div class="ann-title">Invented Data</div>
+            "145 mph" appears nowhere in the problem. This is a fabricated mathematical claim that would actively mislead the student.
+            <div class="ann-quote">"the distance traveled (870 miles) and the speed (145 mph)"</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">About Student, Not To Student</div>
+            Opening speaks <em>about</em> the student rather than <em>to</em> them — a voice inconsistency that limits utility for teacher use.
+          </div>
+        </div>
+      </div>
+
+      <!-- FINE TUNED -->
+      <div class="model-col">
+        <div class="model-col-header ft">
+          <span class="model-badge ft">Fine Tuned</span>
+        </div>
+        <div class="ai-panel ft">
+          I love seeing your enthusiasm for solving problems! Let's dive into the short answer first — "How many miles did they drive?" <span class="hl-good">Your answer, 870 miles, is correct!</span> <span class="hl-good">I'm curious to know, what was your thought process when approaching this problem? Were you thinking about a specific scenario or using a mathematical strategy?</span><br><br>
+          As for the long answer, I appreciate your effort in multiplying 145 by 6. <span class="hl-note">However, it would be helpful if you could explain why you chose that method and what you think the product represents in the context of the problem.</span> Could you help me understand what calculation you were aiming for?<br><br>
+          To take it a step further, can you think about how the numbers in the problem relate to the total distance?
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note pos">
+            <div class="ann-title">Curious</div>
+            Good — the questioning that follows is grounded in genuine curiosity about the student's process.
+            <div class="ann-quote">"I'm curious to know, what was your thought process when approaching this problem?"</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Questioning That Makes Sense</div>
+            A step in the right direction, but would need more specificity to be fully appropriate for this particular student's brief response.
+            <div class="ann-quote">"…explain why you chose that method and what you think the product represents…"</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">A Step Further — But Whose Work Is This?</div>
+            The extension prompt is fine information, but does it belong in feedback to the student, or is it more of a class-level conversation? Here it just feels like asking the student to do more work.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /example 1 -->
+
+
+  <!-- ╔══════════════════════════════════════╗
+       EXAMPLE 2 · Doc 70663
+       Thorough work, clear reasoning
+  ╚══════════════════════════════════════╝ -->
+  <div class="student-example">
+
+    <div class="student-banner">
+      <div class="student-num">02</div>
+      <div class="student-meta">
+        <div class="student-label"><div class="dot"></div>Student Work · Document 70663</div>
+        <div class="student-text">
+          The trip to Aunt Mazie's house is 870 miles. First, I divided the last half into 3 parts. One part is 145 miles, so I multiplied 145 × 3 and got 435. Half the trip is 435 miles, so I multiplied 435 × 2 to get 870 miles.<br><br>
+          <em>Extra:</em> Yes, I think the family will make the trip in one day by driving 50 mph because there are 24 hours in a day, so I multiplied 50 × 24 and got 1200 miles. 1200 miles is more than 870 miles, so the family will make the trip in one day.
+        </div>
+        <div class="student-id">Thorough, correct reasoning with a clear step-by-step approach and an extra response</div>
+      </div>
+    </div>
+
+    <div class="model-responses">
+
+      <!-- VANILLA -->
+      <div class="model-col">
+        <div class="model-col-header vanilla">
+          <span class="model-badge vanilla">Vanilla</span>
+        </div>
+        <div class="ai-panel vanilla">
+          <span class="hl-good">I love seeing your thought process at work!</span> Let's dive into the details of your short and long answer submissions.<br><br>
+          I appreciate how you broke down the trip into smaller parts to find half the distance. Your calculation is spot on: 435 miles (1/2 × 870) is correct! This shows you're comfortable with multiplication and applying it to real-world problems.<br><br>
+          I'm curious about why you decided to divide the last half of the trip into three parts. Was there a specific reason or strategy behind this approach? <span class="hl-bad">Additionally, can you think of ways to make your calculation more efficient, perhaps by using mental math or visualizing the problem?</span><br><br>
+          <span class="hl-note">As we move forward, what would you like to focus on to improve your math skills? Would you like to work on estimating distances, visualizing problems, or exploring different multiplication strategies?</span>
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note pos">
+            <div class="ann-title">Novel Approach (Cindy Note)</div>
+            Stands out from ChatGPT "respond like a teacher" responses — seeking student input on what <em>they</em> want to work on seems novel.
+            <div class="ann-quote">"What would you like to focus on to improve your math skills?"</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Too Many Questions</div>
+            Should it have stayed focused on the first question? At the same time, if these are ideas for teachers, maybe too much is a good thing — teachers can pick and choose.
+          </div>
+          <div class="ann-note crit">
+            <div class="ann-title">Efficiency Assumption</div>
+            Pushes toward "a better way" without first understanding why the student made the choices they did — frames efficiency as a goal before honoring the student's reasoning.
+            <div class="ann-quote">"Can you think of ways to make your calculation more efficient…?"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAG 0.1 -->
+      <div class="model-col">
+        <div class="model-col-header rag">
+          <span class="model-badge rag">RAG 0.1</span>
+        </div>
+        <div class="ai-panel rag">
+          I appreciate your effort to break down the problem into smaller parts and use multiplication to find the total distance of the trip. However, there are a few areas where you can improve your thinking and calculation skills. <span class="hl-bad">For instance, when dividing the last half of the trip into three parts, it would be more accurate to multiply 145 by 2 (since there are two equal parts) rather than multiplying by 3.</span><br><br>
+          Additionally, your extra calculation about whether the family will make the trip in one day is a good start, but you should consider that they won't actually drive for 24 hours straight — you might want to think about how many hours of driving time there is in a day.<br><br>
+          <span class="hl-bad">Overall, your approach shows promise, and with some refinement, you'll be able to tackle similar problems more effectively.</span>
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note crit">
+            <div class="ann-title">Stupid Math</div>
+            Just plain wrong. The AI has confused the overall trip being in 2 parts with the half of the trip being divided into thirds. Multiplying by 2 instead of 3 is incorrect.
+            <div class="ann-quote">"…it would be more accurate to multiply 145 by 2 (since there are two equal parts)…"</div>
+          </div>
+          <div class="ann-note crit">
+            <div class="ann-title">Missed Opportunity</div>
+            Because the AI doesn't understand what it's doing, it cannot recognize this as a thoughtful approach — and so misses the chance to praise it.
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Bad Next Steps</div>
+            The closing does not recognize the student's thinking and offers nothing specific enough to act on.
+            <div class="ann-quote">"…with some refinement, you'll be able to tackle similar problems more effectively."</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINE TUNED -->
+      <div class="model-col">
+        <div class="model-col-header ft">
+          <span class="model-badge ft">Fine Tuned</span>
+        </div>
+        <div class="ai-panel ft">
+          I love seeing your creative approach to solving the problem! It's great that you started by breaking down the second half of the trip into smaller parts and using multiplication to find the total distance. <span class="hl-good">Your calculation, 435 miles (multiplying 145 × 3), is spot on!</span><br><br>
+          <span class="hl-note">To take your understanding to the next level, I'd like to see you apply a similar strategy to the entire trip instead of just the second half.</span> Can you try breaking down the whole trip into smaller parts and using multiplication to find the total distance? Remember, you can use the same units (miles) for each part.<br><br>
+          <span class="hl-bad">However, let's focus on the math rather than the specific situation…</span>
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note">
+            <div class="ann-title">Unfair Response</div>
+            Feels like the AI is looking for reasonableness of the answer — but that is not what was asked in the question. What the student did <em>does</em> answer the question correctly.
+          </div>
+          <div class="ann-note crit">
+            <div class="ann-title">Condescending Language</div>
+            "Let's focus on the math rather than the specific situation" dismisses the student's approach without engaging with it.
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">But Why?</div>
+            The student <em>could</em> apply the strategy to the entire trip — but it isn't necessary for the work of this problem. The suggestion feels imposed rather than invited.
+            <div class="ann-quote">"…apply a similar strategy to the entire trip instead of just the second half."</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /example 2 -->
+
+
+  <!-- ╔══════════════════════════════════════╗
+       EXAMPLE 3 · Doc 72364
+       Terse but mathematically precise
+  ╚══════════════════════════════════════╝ -->
+  <div class="student-example">
+
+    <div class="student-banner">
+      <div class="student-num">03</div>
+      <div class="student-meta">
+        <div class="student-label"><div class="dot"></div>Student Work · Document 72364</div>
+        <div class="student-text">
+          870 miles &nbsp;·&nbsp; 1/3rd of 1/2 of total distance is 145 miles
+        </div>
+        <div class="student-id">Terse but mathematically precise — correct answer with a concise ratio statement; different models interpret the brevity very differently</div>
+      </div>
+    </div>
+
+    <div class="model-responses">
+
+      <!-- VANILLA -->
+      <div class="model-col">
+        <div class="model-col-header vanilla">
+          <span class="model-badge vanilla">Vanilla</span>
+        </div>
+        <div class="ai-panel vanilla">
+          I love seeing your thinking on this problem! Let's dive into your short answer first — you correctly calculated that 870 miles represents the total distance traveled. That's great work!<br><br>
+          Now, moving on to your long answer, <span class="hl-bad">I'm impressed that you were able to recognize the relationship between the fractions and the total distance. Your equation, 1/3rd of 1/2 of total distance is indeed equal to 145 miles! What stood out to me was how you successfully applied the concept of equivalent ratios to simplify the problem.</span><br><br>
+          To take your thinking to the next level, I'd love to see you explore more examples or scenarios where you can apply this same concept. Here's a guiding question: Can you think of a real-world situation where you might need to find one-third of half of a total distance?
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note crit">
+            <div class="ann-title">Formulaic</div>
+            Just like a robot — a second mentor reply just like the first. The response renames the student's thinking using mathematical language without helping a teacher understand what the student actually did or what to do next.
+          </div>
+        </div>
+      </div>
+
+      <!-- RAG 0.1 -->
+      <div class="model-col">
+        <div class="model-col-header rag">
+          <span class="model-badge rag">RAG 0.1</span>
+        </div>
+        <div class="ai-panel rag">
+          I appreciate your effort to break down the problem into smaller parts, but I think there's a bit of confusion in your approach. <span class="hl-bad">You correctly identified that you needed to find 1/3rd of 1/2 of the total distance, which is a great start! However, it seems like you got stuck on finding 145 miles as the answer without fully considering what that represents in terms of the original problem.</span><br><br>
+          To get back on track, let's revisit the question: we're looking for the total distance traveled. Can you see how your calculation of 1/3rd of 1/2 of the total distance might be related to this?
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note crit">
+            <div class="ann-title">Completely Misunderstood Student's Work</div>
+            The student is correct and described their thinking briefly — one can infer they understand if they know the problem. The AI completely misreads the work: the student wrote the answer (870) and then the explanation without explicitly connecting them, and the model could not infer the link.
+          </div>
+          <div class="ann-note crit">
+            <div class="ann-title">Agreed (Multiple Annotators)</div>
+            The appropriate response would be: "Great job — can you tell me how you got 145, and then how you got to 870?" The AI does not understand what the actual gap is.
+          </div>
+        </div>
+      </div>
+
+      <!-- FINE TUNED -->
+      <div class="model-col">
+        <div class="model-col-header ft">
+          <span class="model-badge ft">Fine Tuned</span>
+        </div>
+        <div class="ai-panel ft">
+          I love seeing your efforts to solve this problem! Let's dive into one key idea: understanding equivalent ratios. <span class="hl-good">Your work in the long answer shows you're on the right track by recognizing that 1/3rd of 1/2 is indeed equal to 145 miles. This is a great start!</span> To take it further, can you think about how you could use equivalent ratios to find the total distance traveled? For example, if 1/3rd of 1/2 is 145 miles, what would be the total distance if we multiply both the numerator and denominator by 6 to get back to the whole? Your original answer was 870 miles — do you think that's correct based on this thinking?
+        </div>
+        <div class="ann-panel">
+          <div class="ann-panel-label"><div class="dot"></div>Annotations</div>
+          <div class="ann-note pos">
+            <div class="ann-title">Accurate Understanding of the Math</div>
+            The Fine Tuned model correctly interprets the student's work — notably, the other two models both misread this same response.
+            <div class="ann-quote">"Your work…shows you're on the right track by recognizing that 1/3rd of 1/2 is indeed equal to 145 miles."</div>
+          </div>
+          <div class="ann-note">
+            <div class="ann-title">Specific Naming of a Strategy</div>
+            The use of "equivalent ratios" is not necessary here — the student doesn't need to know the name to do the math. The label may add more jargon than insight.
+            <div class="ann-quote">"can you think about how you could use equivalent ratios to find the total distance…"</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /example 3 -->
+
+
+</main>
+
+<footer class="page-footer">
+  MENTIR-AI Research Project · Gates Foundation-Funded · Round 1 Data · Qualitative Analysis conducted in Dedoose<br>
+  All six student responses shown carry researcher annotations across all three models. Three examples presented here.<br>
+  Annotations reflect researcher memos by project team members (shumarw, vowel, CYovanov). Student responses drawn from the Aunt Mazie equivalent ratios task, grades 5–7.
+</footer>
+
+</body>
+</html>
